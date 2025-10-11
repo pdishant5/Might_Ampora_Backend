@@ -6,6 +6,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middlewares.js";
 
+const app = express();
+
 // Global rate-limiting..
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes..
@@ -51,9 +53,13 @@ app.use(cors({
 
 // Import routes..
 import authRouter from "./routes/auth.routes.js";
+import gadgetRouter from "./routes/gadget.routes.js";
+import solarRouter from "./routes/solar.routes.js";
 
 // API routes..
 app.use("/api/v1/users", authRouter);
+app.use("/api/v1/gadgets", gadgetRouter);
+app.use("/api/v1/solar", solarRouter);
 
 // 404 Not Found handler..
 app.use((req, res) => {
