@@ -7,6 +7,6 @@ import {
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
-router.get('/recognize', upload.single('image'), recognizeGadget);
+router.post('/recognize', upload.single('image'), recognizeGadget);
 
 export default router;
