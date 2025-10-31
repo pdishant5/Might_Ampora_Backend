@@ -24,6 +24,7 @@ app.use("/api", limiter);
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
+app.set('trust proxy', 1); // trust first proxy
 
 // Global error handler..
 app.use((err, req, res, next) => {
