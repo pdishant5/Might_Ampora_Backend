@@ -1,12 +1,13 @@
 import Router from 'express';
-import multer from 'multer';
+import { upload } from '../middlewares/multer.middlewares.js';
 import {
-    recognizeGadget
+    recognizeGadget,
+    getEstimatedWattage
 } from '../controllers/gadget.controller.js';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 router.post('/recognize', upload.single('image'), recognizeGadget);
+router.post("/estimate-wattage", getEstimatedWattage);
 
 export default router;

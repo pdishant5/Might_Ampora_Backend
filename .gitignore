@@ -140,3 +140,5 @@ vite.config.ts.timestamp-*
 
 # Google Cloud Credentials
 key.json
+
+uploads/
