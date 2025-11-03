@@ -1,13 +1,13 @@
-import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import vision from '@google-cloud/vision';
 
-// Creates a client..
+// Creates a client
 const client = new vision.ImageAnnotatorClient();
 
 export const recognizeGadget = asyncHandler(async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No image file uploaded' });
+    if (!req.file) 
+      return res.status(400).json({ error: 'No image file uploaded' });
 
     const image = { content: req.file.buffer };
 
@@ -28,24 +28,31 @@ export const recognizeGadget = asyncHandler(async (req, res) => {
     // 3️⃣ Extract text for star rating / extra info
     const [textResponse] = await client.textDetection({ image });
     const fullText = textResponse.fullTextAnnotation?.text || "";
-
-    // Extract possible star rating e.g. "5 Star", "4STAR"
     const starMatch = fullText.match(/(\d+)\s*star/i);
-    const starRating = starMatch ? parseInt(starMatch[1]) : null;
+    const starRating = starMatch ? parseInt(starMatch[1]) : "Not detected";
 
-    // 4️⃣ Object localization (optional)
+    // 4️⃣ Object localization
     const [objResponse] = await client.objectLocalization({ image });
     const objects = (objResponse.localizedObjectAnnotations || []).map(o => ({
-      name: o.name, score: o.score
+      name: o.name,
+      score: o.score
     }));
 
-    // Build Response
+    // 5️⃣ First/highest confidence items for convenience
+    const mainLabel = labels[0] || null;
+    const mainObject = objects[0] || null;
+    const mainBrand = brands[0] || null;
+
+    // Build response
     res.json({
       applianceLabels: labels,
       detectedObjects: objects,
-      brandDetected: brands.length ? brands : "Brand not clearly visible",
-      starRating: starRating || "Not detected",
-      extractedText: fullText // useful for debugging & future parsing
+      brandDetected: brands,
+      starRating,
+      extractedText: fullText,
+      mainLabel,
+      mainObject,
+      mainBrand
     });
 
   } catch (err) {
