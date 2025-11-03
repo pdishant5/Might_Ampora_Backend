@@ -47,7 +47,7 @@ export const recognizeGadget = asyncHandler(async (req, res) => {
     res.json({
       applianceLabels: labels,
       detectedObjects: objects,
-      brandDetected: brands,
+      brandDetected: brands,  
       starRating,
       extractedText: fullText,
       mainLabel,
