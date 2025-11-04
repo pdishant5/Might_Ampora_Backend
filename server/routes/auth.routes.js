@@ -3,7 +3,7 @@ import {
     facebookSignIn,
     googleSignIn,
     logoutUser,
-    refreshToken,
+    refreshAccessToken,
     signInWithOTP,
     verifyOTP,
 } from '../controllers/auth.controller.js';
@@ -15,7 +15,7 @@ router.post('/facebook', facebookSignIn);
 router.post('/request-otp', signInWithOTP);
 router.post('/verify-otp', verifyOTP);
 
-router.post('/refresh-token', refreshToken);
+router.post('/refresh-token', refreshAccessToken);
 router.post('/logout', logoutUser);
 
 export default router;
