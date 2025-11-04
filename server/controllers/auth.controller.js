@@ -1,8 +1,9 @@
 import { User } from '../models/user.model.js';
 import jwt from 'jsonwebtoken';
+import bcrypt from "bcryptjs";
+import redis from "../config/redis.js";
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/apiResponse.js';
-import { OTP } from '../models/otp.model.js';
 
 export const googleSignIn = asyncHandler(async (req, res) => {
     const { googleId, email, name } = req.body;
@@ -78,78 +79,81 @@ export const facebookSignIn = asyncHandler(async (req, res) => {
     }, "User signed in successfully!"));
 });
 
+const OTP_TTL = parseInt(process.env.OTP_TTL_SECONDS || "300");
+const OTP_MAX_ATTEMPTS = parseInt(process.env.OTP_MAX_ATTEMPTS || "5");
+const OTP_RESEND_LIMIT = parseInt(process.env.OTP_RESEND_LIMIT || "3");
+const RESEND_WINDOW = 3600; // 1 hour
+
+function generateOtp(length = 6) {
+  const min = Math.pow(10, length - 1);
+  const max = Math.pow(10, length) - 1;
+  return String(Math.floor(Math.random() * (max - min + 1) + min));
+}
+
+async function hashOtp(otp) {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(otp, salt);
+}
+
+async function compareOtp(plain, hashed) {
+  return bcrypt.compare(plain, hashed);
+}
+
+export async function requestOtp(userId) {
+  const resendKey = `otp_resend:${userId}`;
+  const resendCount = parseInt((await redis.get(resendKey)) || "0", 10);
+  if (resendCount >= OTP_RESEND_LIMIT)
+    throw new Error("Too many OTP requests. Try later.");
+
+  const otp = generateOtp(6);
+  const hashed = await hashOtp(otp);
+  const otpKey = `otp:${userId}`;
+
+  await redis.set(otpKey, hashed, "EX", OTP_TTL);
+  await redis.multi().incr(resendKey).expire(resendKey, RESEND_WINDOW).exec();
+
+  console.log(`🔐 OTP for ${userId}: ${otp}`);
+  return otp; // you’ll normally email or SMS this
+}
+
+
+export async function verifyOtp(userId, otp) {
+  const otpKey = `otp:${userId}`;
+  const attemptsKey = `otp_attempts:${userId}`;
+
+  const hashed = await redis.get(otpKey);
+  if (!hashed) throw new Error("OTP expired or not found.");
+
+  const attempts = parseInt((await redis.get(attemptsKey)) || "0", 10);
+  if (attempts >= OTP_MAX_ATTEMPTS)
+    throw new Error("Too many wrong attempts.");
+
+  const valid = await compareOtp(otp, hashed);
+  if (!valid) {
+    await redis
+      .multi()
+      .incr(attemptsKey)
+      .expire(attemptsKey, Math.max(OTP_TTL, 300))
+      .exec();
+    throw new Error("Invalid OTP.");
+  }
+
+  await redis.multi().del(otpKey).del(attemptsKey).exec();
+  return true;
+}
+
 export const signInWithOTP = asyncHandler(async (req, res) => {
-    const { mobileNumber } = req.body;
-    if (!mobileNumber) {
-        return res.status(400).json({
-            status: "error",
-            message: "Mobile number is required!"
-        });
-    }
-
-    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
-    console.log(`OPT for ${mobileNumber}: ${otpCode}`); // In real app, send this OTP via SMS..
-
-    await OTP.deleteMany({ mobileNumber }); // Remove any existing OTPs for the same number..
-    
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // OTP valid for 5 minutes..
-    await OTP.create({ mobileNumber, otp: otpCode, expiresAt });
-
-    return res.status(201).json(new ApiResponse(201, { status: "success" }, "OTP sent successfully!"));
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: "Missing user id" });
+    await requestOtp(id);
+    res.json({ ok: true, message: "OTP sent successfully" });
 });
 
 export const verifyOTP = asyncHandler(async (req, res) => {
-    const { mobileNumber, otp } = req.body;
-    if (!mobileNumber || !otp) {
-        return res.status(400).json({
-            status: "error",
-            message: "Mobile number and OTP are required!"
-        });
-    }
-
-    const validOtp = await OTP.findOne({ mobileNumber, otp });
-
-    if (!validOtp) {
-        return res.status(400).json({
-            status: "error",
-            message: "Invalid OTP!"
-        });
-    }
-    if (new Date() > new Date(validOtp.expiresAt)) {
-        return res.status(400).json({
-            status: "error",
-            message: "OTP expired!"
-        });
-    }
-
-    // Remove the used OTP..
-    await OTP.deleteOne({ _id: validOtp._id });
-
-    // OTP is valid, proceed with user creation or login..
-    let user = await User.findOne({ mobileNumber });
-    let newUser = 0;
-
-    if (!user) {
-        user = new User({
-            mobileNumber,
-            provider: "mobile",
-        });
-        newUser = 1;
-    }
-
-    const payload = { userId: user._id, mobileNumber: user.mobileNumber };
-    const accessToken = user.createAccessToken(payload);
-    const refreshToken = user.createRefreshToken(payload);
-
-    user.refreshToken = refreshToken;
-    user.refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days expiry
-    await user.save();
-
-    return res.status(200+newUser).json(new ApiResponse(200+newUser, {
-        accessToken,
-        refreshToken,
-        user
-    }, "User signed in successfully!"));
+    const { id, otp } = req.body;
+    if (!id || !otp) return res.status(400).json({ error: "Missing id or otp" });
+    await verifyOtp(id, otp);
+    res.json({ ok: true, message: "OTP verified successfully" });
 });
 
 export const refreshToken = asyncHandler(async (req, res) => {
