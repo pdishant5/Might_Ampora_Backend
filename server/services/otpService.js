@@ -8,8 +8,9 @@ import {
     hashOtp,
     compareOtp
 } from "../utils/otpUtils.js";
+import { sendOTPSms } from "./smsService.js";
 
-export async function requestOtp(userId) {
+export async function requestOtp(userId, mobileNumber) {
     const resendKey = `otp_resend:${userId}`;
     const resendCount = parseInt((await redis.get(resendKey)) || "0", 10);
     
@@ -23,8 +24,9 @@ export async function requestOtp(userId) {
     await redis.set(otpKey, hashed, "EX", OTP_TTL);
     await redis.multi().incr(resendKey).expire(resendKey, RESEND_WINDOW).exec();
 
-    console.log(`🔐 OTP for ${userId}: ${otp}`);
-    return otp; // you’ll normally email or SMS this
+    // you’ll normally email or SMS this
+    await sendOTPSms(mobileNumber, otp);
+    return otp;
 };
 
 export async function verifyOtp(userId, otp) {

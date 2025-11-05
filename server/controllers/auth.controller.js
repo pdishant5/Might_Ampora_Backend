@@ -73,9 +73,9 @@ export const facebookSignIn = asyncHandler(async (req, res) => {
 });
 
 export const signInWithOTP = asyncHandler(async (req, res) => {
-    const { id } = req.body;
-    if (!id) return res.status(400).json({ error: "Missing user id" });
-    await requestOtp(id);
+    const { id, mobileNumber } = req.body;
+    if (!id || !mobileNumber) return res.status(400).json({ error: "User id or Mobile number is missing!" });
+    await requestOtp(id, mobileNumber);
     res.json({ ok: true, message: "OTP sent successfully" });
 });
 
