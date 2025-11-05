@@ -56,11 +56,13 @@ app.use(cors({
 import authRouter from "./routes/auth.routes.js";
 import gadgetRouter from "./routes/gadget.routes.js";
 import solarRouter from "./routes/solar.routes.js";
+import activityRouter from "./routes/activity.routes.js";
 
 // API routes..
 app.use("/api/v1/users", authRouter);
 app.use("/api/v1/gadgets", gadgetRouter);
 app.use("/api/v1/solar", solarRouter);
+app.use("/api/v1/activity", activityRouter);
 
 // 404 Not Found handler..
 app.use((req, res) => {

@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 export const OTP_TTL = parseInt(process.env.OTP_TTL_SECONDS || "300", 10); // 5 minutes
 export const OTP_MAX_ATTEMPTS = parseInt(process.env.OTP_MAX_ATTEMPTS || "5", 10);
-export const OTP_RESEND_LIMIT = parseInt(process.env.OTP_RESEND_LIMIT || "20", 10);
+export const OTP_RESEND_LIMIT = parseInt(process.env.OTP_RESEND_LIMIT || "3", 10);
 export const RESEND_WINDOW = 3600; // 1 hour
 
 export function generateOtp(length = 4) {
