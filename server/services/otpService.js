@@ -21,7 +21,7 @@ export async function requestOtp(userId, mobileNumber) {
     const hashed = await hashOtp(otp);
     const otpKey = `otp:${userId}`;
 
-    await redis.set(otpKey, hashed, "EX", OTP_TTL);
+    await redis.set(otpKey, hashed, { ex: OTP_TTL });
     await redis.multi().incr(resendKey).expire(resendKey, RESEND_WINDOW).exec();
 
     // you’ll normally email or SMS this
