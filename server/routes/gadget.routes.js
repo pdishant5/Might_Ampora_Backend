@@ -1,5 +1,5 @@
 import Router from 'express';
-import { upload } from '../middlewares/multer.middlewares.js';
+import { upload } from '../config/multer.js';
 import {
     recognizeGadget,
     getEstimatedWattage
