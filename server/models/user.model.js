@@ -32,6 +32,9 @@ const userSchema = new Schema({
         enum: ["google", "facebook", "mobile"],
         required: true,
     },
+    location: {
+        type: String,
+    },
     refreshToken: String,
     refreshTokenExpiry: Date,
 }, { timestamps: true });

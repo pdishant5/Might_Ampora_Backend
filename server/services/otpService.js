@@ -10,8 +10,8 @@ import {
 } from "../utils/otpUtils.js";
 import { sendOTPSms } from "./smsService.js";
 
-export async function requestOtp(userId, mobileNumber) {
-    const resendKey = `otp_resend:${userId}`;
+export async function requestOtp(mobileNumber) {
+    const resendKey = `otp_resend:${mobileNumber}`;
     const resendCount = parseInt((await redis.get(resendKey)) || "0", 10);
     
     if (resendCount >= OTP_RESEND_LIMIT)
@@ -19,19 +19,19 @@ export async function requestOtp(userId, mobileNumber) {
 
     const otp = generateOtp(4);
     const hashed = await hashOtp(otp);
-    const otpKey = `otp:${userId}`;
+    const otpKey = `otp:${mobileNumber}`;
 
     await redis.set(otpKey, hashed, { ex: OTP_TTL });
     await redis.multi().incr(resendKey).expire(resendKey, RESEND_WINDOW).exec();
 
-    // you’ll normally email or SMS this
+    // SMS the above generated OTP..
     await sendOTPSms(mobileNumber, otp);
     return otp;
 };
 
-export async function verifyOtp(userId, otp) {
-    const otpKey = `otp:${userId}`;
-    const attemptsKey = `otp_attempts:${userId}`;
+export async function verifyOtp(mobileNumber, otp) {
+    const otpKey = `otp:${mobileNumber}`;
+    const attemptsKey = `otp_attempts:${mobileNumber}`;
 
     const hashed = await redis.get(otpKey);
     if (!hashed) throw new Error("OTP expired or not found.");

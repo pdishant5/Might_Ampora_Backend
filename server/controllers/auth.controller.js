@@ -72,18 +72,64 @@ export const facebookSignIn = asyncHandler(async (req, res) => {
     }, "User signed in successfully!"));
 });
 
-export const signInWithOTP = asyncHandler(async (req, res) => {
-    const { id, mobileNumber } = req.body;
-    if (!id || !mobileNumber) return res.status(400).json({ error: "User id or Mobile number is missing!" });
-    await requestOtp(id, mobileNumber);
+export const requestOTP = asyncHandler(async (req, res) => {
+    const { mobileNumber } = req.body;
+    if (!mobileNumber) return res.status(400).json({ error: "Mobile number is missing!" });
+    await requestOtp(mobileNumber);
     res.json({ ok: true, message: "OTP sent successfully" });
 });
 
 export const verifyOTP = asyncHandler(async (req, res) => {
-    const { id, otp } = req.body;
-    if (!id || !otp) return res.status(400).json({ error: "Missing id or otp" });
-    await verifyOtp(id, otp);
+    const { mobileNumber, otp } = req.body;
+    if (!mobileNumber || !otp) return res.status(400).json({ error: "Missing mobile number or otp" });
+    await verifyOtp(mobileNumber, otp);
     res.json({ ok: true, message: "OTP verified successfully" });
+});
+
+export const signInWithOTP = asyncHandler(async (req, res) => {
+    const { mobileNumber, name, email, location } = req.body;
+    if (!mobileNumber || !name || !email || !location) {
+        return res.status(400).json({
+            status: "error",
+            message: "All fields are required!"
+        });
+    }
+
+    let user = await User.findOne({ mobileNumber });
+    let newUser = 0;
+
+    if (!user) {
+        user = await User.create({
+            mobileNumber,
+            name,
+            email,
+            location,
+            provider: "mobile",
+        });
+        newUser = 1;
+    }
+
+    const payload = {
+        userId: user._id,
+        email: user.email
+    };
+    const accessToken = user.generateAccessToken(payload);
+    const refreshToken = user.generateRefreshToken(payload);
+
+    user.refreshToken = refreshToken;
+    user.refreshTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 days expiry
+    await user.save();
+
+    return res.status(200+newUser).json(new ApiResponse(200+newUser, {
+        user: {
+            id: user._id,
+            email: user.email,
+            name: user.name,
+            provider: user.provider
+        },
+        accessToken,
+        refreshToken
+    }, "User signed in successfully!"));
 });
 
 export const refreshAccessToken = asyncHandler(async (req, res) => {

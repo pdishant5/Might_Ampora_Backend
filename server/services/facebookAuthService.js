@@ -47,7 +47,7 @@ export const handleFacebookAuth = async (accessToken) => {
         userId: user._id,
         email: user.email
     };
-    const jwtAccessToken = user.generateRefreshToken(payload);
+    const jwtAccessToken = user.generateAccessToken(payload);
     const refreshToken = user.generateRefreshToken(payload);
 
     return { user, jwtAccessToken, refreshToken, newUser };
