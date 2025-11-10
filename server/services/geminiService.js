@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { ApiError } from "../utils/apiError.js";
 
 // Create GenAI API client..
 const API_KEY = process.env.GEMINI_API_KEY;
