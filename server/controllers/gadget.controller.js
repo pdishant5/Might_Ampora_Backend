@@ -64,6 +64,6 @@ export const getEstimatedWattage = asyncHandler(async (req, res) => {
         }));
 
     } catch (error) {
-        return new ApiError(500, "Error fetching wattage!" + error.message);
+        throw new ApiError(500, "Error fetching wattage!" + error.message);
     }
 });
