@@ -132,6 +132,43 @@ export const signInWithOTP = asyncHandler(async (req, res) => {
     }, "User signed in successfully!"));
 });
 
+export const getUserProfile = asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+        return res.status(400).json({
+            status: "error",
+            message: "Refresh token is required!"
+        });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    if (!decoded) {
+        return res.status(401).json({
+            status: "error",
+            message: "Invalid refresh token!"
+        });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user || (user.refreshToken !== refreshToken) || (user.refreshTokenExpiry && user.refreshTokenExpiry < new Date())) {
+        return res.status(401).json({
+            status: "error",
+            message: "Invalid or expired refresh token!"
+        });
+    }
+
+    return res.status(200).json(new ApiResponse(200, {
+        user: {
+            userId: user._id,
+            name: user.name,
+            email: user.email,
+            mobileNumber: user.mobileNumber,
+            provider: user.provider,
+            location: user.location
+        }
+    }, "User profile fetched successfully!"));
+});
+
 export const refreshAccessToken = asyncHandler(async (req, res) => {
     const { refreshToken } = req.body;
     if (!refreshToken) {

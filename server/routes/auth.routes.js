@@ -1,6 +1,7 @@
 import Router from 'express';
 import {
     facebookSignIn,
+    getUserProfile,
     googleSignIn,
     logoutUser,
     refreshAccessToken,
@@ -16,6 +17,7 @@ router.post('/facebook', facebookSignIn);
 router.post('/request-otp', requestOTP);
 router.post('/verify-otp', verifyOTP);
 router.post('/otp-signup', signInWithOTP);
+router.post('/profile', getUserProfile);
 
 router.post('/refresh-token', refreshAccessToken);
 router.post('/logout', logoutUser);
