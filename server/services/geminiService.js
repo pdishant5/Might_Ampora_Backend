@@ -51,6 +51,6 @@ export async function analyzeAppliance(base64Image, mimeType) {
         return jsonData;
 
     } catch (error) {
-        return new ApiError(500, "Error analyzing appliance image!" + error.message);
+        throw new ApiError(500, "Error analyzing appliance image!" + error.message);
     }
 };
