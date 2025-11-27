@@ -1,4 +1,4 @@
-import { analyzeAppliance, model } from "../services/geminiService.js";
+import { analyzeAppliance, generateWattageText } from "../services/geminiService.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -32,17 +32,16 @@ export const recognizeGadget = asyncHandler(async (req, res) => {
 });
 
 export const getEstimatedWattage = asyncHandler(async (req, res) => {
-    const { mainName, mainBrand, starRating } = req.body;
-    
+        const { mainName, mainBrand, starRating } = req.body;
+
     if (!mainName || !mainBrand || !starRating || starRating === "Not Visible") {
         return res.status(400).json({
             status: "error",
-            message: "Insufficient data to estimate wattage!"
+            message: "Insufficient data to estimate wattage!",
         });
     }
 
     try {
-        // This prompt is designed to get a single, clean answer.
         const prompt = `
             What is the typical power consumption (wattage) for a
             '${mainBrand} ${mainName}' with a '${starRating}' rating?
@@ -50,20 +49,26 @@ export const getEstimatedWattage = asyncHandler(async (req, res) => {
             Provide *only* the most common wattage value (e.g., "2000 W")
             or average wattage value of a typical range
             (e.g., "2500 W" for the range "2000 W - 3000 W").
-            
+
             Do not add any other explanatory text, just the value.
         `;
-        
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text().trim();
-        
-        // Clean up any potential markdown or extra quotes
-        return res.status(200).json(new ApiResponse(200, {
-            estimatedWattage: text.replace(/[`"*]/g, "")
-        }));
 
-    } catch (error) {
-        throw new ApiError(500, "Error fetching wattage!" + error.message);
+        const text = await generateWattageText(prompt);
+        // Clean the returned text to a single token (remove stray quotes/backticks done inside service)
+        const cleaned = text.replace(/[`"*]+/g, "").trim();
+
+        return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                estimatedWattage: cleaned,
+            },
+            "Estimated wattage fetched successfully"
+        )
+        );
+    } catch (err) {
+        // If it's our ApiError, pass it directly otherwise wrap
+        if (err instanceof ApiError) return next(err);
+        return next(new ApiError(500, "Error fetching wattage! " + (err.message || String(err))));
     }
 });

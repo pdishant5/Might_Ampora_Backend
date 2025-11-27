@@ -1,13 +1,67 @@
+// src/services/geminiService.js
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ApiError } from "../utils/apiError.js";
 
-// Create GenAI API client..
-const API_KEY = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(API_KEY);
+/**
+ * Gemini failover service
+ *
+ * Expects these env variables:
+ * - GEMINI_API_KEY_PRIMARY
+ * - GEMINI_API_KEY_SECONDARY  (optional)
+ *
+ * Usage:
+ *  import * as geminiService from "../services/geminiService.js";
+ *  await geminiService.analyzeAppliance(base64, mimeType);
+ *  await geminiService.generateWattageText(prompt);
+ */
 
-// For vision models, use "gemini-1.5-flash" (fast) or "gemini-1.5-pro" (high quality)
-export const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+const PRIMARY_KEY = process.env.GEMINI_API_KEY_PRIMARY;
+const SECONDARY_KEY = process.env.GEMINI_API_KEY_SECONDARY || null;
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-pro";
 
+/** Create a GoogleGenerativeAI client for a given API key */
+function createClient(apiKey) {
+    if (!apiKey) return null;
+    const genAI = new GoogleGenerativeAI(apiKey);
+    return genAI.getGenerativeModel({ model: MODEL_NAME });
+}
+
+/** Initialize models (may be null if key missing) */
+const primaryModel = createClient(PRIMARY_KEY);
+const secondaryModel = createClient(SECONDARY_KEY);
+
+/** Utility: detect "retryable" errors we should fallback on */
+function isRetryableError(err) {
+    if (!err) return false;
+
+    // network errors or thrown by underlying library
+    const msg = String(err.message || "").toLowerCase();
+    if (msg.includes("rate limit") || msg.includes("too many requests") || msg.includes("service unavailable")) {
+        return true;
+    }
+
+    // If axios-like error with response:
+    const status = err.response?.status || err.status || err.statusCode;
+    if (status === 429 || status === 503 || (status >= 500 && status < 600)) {
+        return true;
+    }
+
+    // Some libs expose a code
+    const code = err.code || "";
+    if (code === "ENOTFOUND" || code === "ECONNREFUSED" || code === "ECONNRESET" || code === "ETIMEDOUT") {
+        return true;
+    }
+
+    return false;
+}
+
+/** Helper: remove markdown fences and stray backticks then trim */
+function cleanTextOutput(text) {
+    if (!text || typeof text !== "string") return text;
+    return text.replace(/```(?:json)?/g, "").replace(/```/g, "").trim().replace(/^["']+|["']+$/g, "");
+}
+
+/** Convert a base64 file into the generative part (same as your previous helper) */
 function fileToGenerativePart(base64Image, mimeType) {
     return {
         inlineData: {
@@ -17,11 +71,52 @@ function fileToGenerativePart(base64Image, mimeType) {
     };
 }
 
-export async function analyzeAppliance(base64Image, mimeType) {
-    try {
+/**
+ * Try to run a generation using the provided model instance.
+ * The `callFn` is an async function that receives a model instance and performs the call.
+ * If primary fails with a retryable error and secondary exists, fallback to secondary.
+ */
+async function runWithFailover(callFn) {
+    // Try primary
+    if (primaryModel) {
+        try {
+            return await callFn(primaryModel);
+        } catch (err) {
+            if (!isRetryableError(err)) {
+                // Non-retryable: bubble up immediately
+                throw err;
+            }
+            // Retryable: attempt secondary if available
+            console.warn("Primary Gemini failed with retryable error — will try secondary:", err.message || err);
+        }
+    }
 
-        // This is the most important part: the prompt.
-        // We explicitly ask for JSON output.
+    // If primary not present or failed retryably, try secondary
+    if (secondaryModel) {
+        try {
+            return await callFn(secondaryModel);
+        } catch (err2) {
+            // Secondary failed too: throw combined error or secondary error
+            const combinedErr = new Error(
+                `Both Gemini primary and secondary failed. Secondary error: ${err2.message || err2}`
+            );
+            combinedErr.original = err2;
+            throw combinedErr;
+        }
+    }
+
+    // No model available
+    throw new ApiError(500, "No Gemini API key configured (primary and secondary missing).");
+}
+
+/**
+ * analyzeAppliance(base64Image, mimeType)
+ * - sends the image + prompt asking for JSON
+ * - returns parsed JSON object
+ */
+export async function analyzeAppliance(base64Image, mimeType) {
+    return runWithFailover(async (model) => {
+        try {
         const prompt = `
             Analyze the provided image of an electronic appliance.
             Identify the following three pieces of information:
@@ -33,25 +128,45 @@ export async function analyzeAppliance(base64Image, mimeType) {
             Example: {"applianceType": "Water Heater", "brand": "Padmini", "starRating": "1 Star"}
         `;
 
-        // Create the image part from your file
         const imagePart = fileToGenerativePart(base64Image, mimeType);
 
-        // Send the prompt and the image to the model
+        // Support the older style you used: model.generateContent([prompt, imagePart])
         const result = await model.generateContent([prompt, imagePart]);
         const response = await result.response;
-        const text = response.text();
+        const rawText = response.text();
 
-        // console.log("Raw response from API:", text);
+        const cleanedText = cleanTextOutput(rawText);
 
-        // Clean the text to ensure it's valid JSON
-        // The API might wrap the JSON in markdown ```json ... ```
-        const cleanedText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        // Parse and return JSON
+        try {
+            const jsonData = JSON.parse(cleanedText);
+            return jsonData;
+        } catch (parseErr) {
+            // If parsing failed, throw a helpful error including the cleaned text
+            const e = new ApiError(500, `Failed to parse JSON from Gemini response: ${cleanedText}`);
+            e.raw = cleanedText;
+            throw e;
+        }
+        } catch (err) {
+        // rethrow so runWithFailover can inspect & fallback if needed
+        throw err;
+        }
+    });
+}
 
-        // Parse the JSON string into a JavaScript object
-        const jsonData = JSON.parse(cleanedText);
-        return jsonData;
-
-    } catch (error) {
-        throw new ApiError(500, "Error analyzing appliance image!" + error.message);
-    }
-};
+/**
+ * generateWattageText(prompt)
+ * - sends a text prompt to the model, returns cleaned text (no markdown fences)
+ */
+export async function generateWattageText(prompt) {
+    return runWithFailover(async (model) => {
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const raw = response.text();
+            return cleanTextOutput(raw);
+        } catch (err) {
+            throw err;
+        }
+    });
+}
