@@ -17,7 +17,7 @@ import { ApiError } from "../utils/apiError.js";
 
 const PRIMARY_KEY = process.env.GEMINI_API_KEY_PRIMARY;
 const SECONDARY_KEY = process.env.GEMINI_API_KEY_SECONDARY || null;
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-pro";
 
 /** Create a GoogleGenerativeAI client for a given API key */
 function createClient(apiKey) {
