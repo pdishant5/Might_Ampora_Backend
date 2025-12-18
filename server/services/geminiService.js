@@ -77,45 +77,56 @@ function fileToGenerativePart(base64Image, mimeType) {
  * If primary fails with a retryable error and secondary exists, fallback to secondary.
  */
 async function runWithFailover(callFn) {
-    // Try primary
+    let primaryError = null;
+
+    // 1️⃣ Try PRIMARY
     if (primaryModel) {
         try {
             return await callFn(primaryModel);
         } catch (err) {
-                const status = err.response?.status || err.status || err.statusCode;
+            const status = err.response?.status || err.status || err.statusCode;
 
-    if (status === 429) {
-        throw new ApiError(
-            429,
-            "Gemini rate limit hit. Please retry after 60 seconds."
-        );
-    }
+            // Save error but DO NOT throw yet
+            primaryError = err;
 
-            if (!isRetryableError(err)) {
-                // Non-retryable: bubble up immediately
+            // If not retryable AND not rate-limit → stop immediately
+            if (status !== 429 && !isRetryableError(err)) {
                 throw err;
             }
-            // Retryable: attempt secondary if available
-            console.warn("Primary Gemini failed with retryable error — will try secondary:", err.message || err);
+
+            console.warn(
+                "Primary Gemini failed — trying secondary:",
+                err.message || err
+            );
         }
     }
 
-    // If primary not present or failed retryably, try secondary
+    // 2️⃣ Try SECONDARY (only once)
     if (secondaryModel) {
         try {
             return await callFn(secondaryModel);
         } catch (err2) {
-            // Secondary failed too: throw combined error or secondary error
-            const combinedErr = new Error(
-                `Both Gemini primary and secondary failed. Secondary error: ${err2.message || err2}`
-            );
-            combinedErr.original = err2;
-            throw combinedErr;
+            const status2 = err2.response?.status || err2.status || err2.statusCode;
+
+            // If secondary also rate-limited
+            if (status2 === 429) {
+                throw new ApiError(
+                    429,
+                    "Gemini rate limit hit on both API keys. Please retry after 60 seconds."
+                );
+            }
+
+            // Any other error → throw secondary error
+            throw err2;
         }
     }
 
-    // No model available
-    throw new ApiError(500, "No Gemini API key configured (primary and secondary missing).");
+    // 3️⃣ No secondary available → throw primary error
+    if (primaryError) {
+        throw primaryError;
+    }
+
+    throw new ApiError(500, "No Gemini API key configured.");
 }
 
 /**
