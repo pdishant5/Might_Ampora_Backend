@@ -40,11 +40,16 @@ function isRetryableError(err) {
         return true;
     }
 
-    // If axios-like error with response:
     const status = err.response?.status || err.status || err.statusCode;
-    if (status === 429 || status === 503 || (status >= 500 && status < 600)) {
+ if (status === 429) {
+        return false;
+    }
+
+    // Retryable infra errors only
+    if (status === 503 || (status >= 500 && status < 600)) {
         return true;
     }
+
 
     // Some libs expose a code
     const code = err.code || "";
