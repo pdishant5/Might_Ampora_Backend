@@ -17,7 +17,7 @@ import { ApiError } from "../utils/apiError.js";
 
 const PRIMARY_KEY = process.env.GEMINI_API_KEY_PRIMARY;
 const SECONDARY_KEY = process.env.GEMINI_API_KEY_SECONDARY || null;
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-pro";
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
 /** Create a GoogleGenerativeAI client for a given API key */
 function createClient(apiKey) {
@@ -34,14 +34,10 @@ const secondaryModel = createClient(SECONDARY_KEY);
 function isRetryableError(err) {
     if (!err) return false;
 
-    // network errors or thrown by underlying library
-    const msg = String(err.message || "").toLowerCase();
-    if (msg.includes("rate limit") || msg.includes("too many requests") || msg.includes("service unavailable")) {
-        return true;
-    }
-
     const status = err.response?.status || err.status || err.statusCode;
- if (status === 429) {
+
+    // Never retry / failover on rate limits
+    if (status === 429) {
         return false;
     }
 
@@ -50,15 +46,14 @@ function isRetryableError(err) {
         return true;
     }
 
-
-    // Some libs expose a code
-    const code = err.code || "";
-    if (code === "ENOTFOUND" || code === "ECONNREFUSED" || code === "ECONNRESET" || code === "ETIMEDOUT") {
+    const code = err.code;
+    if (["ENOTFOUND", "ECONNRESET", "ETIMEDOUT"].includes(code)) {
         return true;
     }
 
     return false;
 }
+
 
 /** Helper: remove markdown fences and stray backticks then trim */
 function cleanTextOutput(text) {
@@ -87,6 +82,15 @@ async function runWithFailover(callFn) {
         try {
             return await callFn(primaryModel);
         } catch (err) {
+                const status = err.response?.status || err.status || err.statusCode;
+
+    if (status === 429) {
+        throw new ApiError(
+            429,
+            "Gemini rate limit hit. Please retry after 60 seconds."
+        );
+    }
+
             if (!isRetryableError(err)) {
                 // Non-retryable: bubble up immediately
                 throw err;
