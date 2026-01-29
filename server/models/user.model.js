@@ -27,10 +27,10 @@ const userSchema = new Schema({
         unique: true,
         sparse: true
     },
-    provider: {
-        type: String,
+    providers: {
+        type: [String],
         enum: ["google", "facebook", "mobile"],
-        required: true,
+        default: [],
     },
     location: {
         type: String,
