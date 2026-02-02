@@ -58,26 +58,56 @@ export async function getPastWeekActivity(userId) {
  * @param {string} userId - User ID
  * @param {string} month - Month in YYYY-MM format
  * @param {object} dailyData - Daily activity data to add to monthly totals
+ * @param {string} date - Date in YYYY-MM-DD format (optional, for idempotency)
  */
-export async function updateMonthlySummary(userId, month, dailyData) {
+export async function updateMonthlySummary(userId, month, dailyData, date = null) {
   const { steps = 0, drivenKm = 0, savedCO2 = 0 } = dailyData;
 
-  const summary = await MonthlySummary.findOneAndUpdate(
-    { userId, month },
-    {
-      $inc: {
-        totalSteps: steps,
-        totalDrivenKm: drivenKm,
-        totalSavedCO2: savedCO2,
-        daysTracked: 1
-      },
-      $set: { updatedAt: new Date() }
-    },
-    { upsert: true, new: true }
-  );
+  // If date is provided, check if it's already been processed
+  if (date) {
+    const existing = await MonthlySummary.findOne({ userId, month, processedDates: date });
+    if (existing) {
+      console.log(`⏭️  Date ${date} already processed for ${userId} - ${month}, skipping`);
+      return existing;
+    }
 
-  console.log(`📊 Monthly summary updated for ${userId} - ${month}`);
-  return summary;
+    // Add this date to processedDates and increment the values
+    const summary = await MonthlySummary.findOneAndUpdate(
+      { userId, month },
+      {
+        $inc: {
+          totalSteps: steps,
+          totalDrivenKm: drivenKm,
+          totalSavedCO2: savedCO2,
+          daysTracked: 1
+        },
+        $addToSet: { processedDates: date },
+        $set: { updatedAt: new Date() }
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`📊 Monthly summary updated for ${userId} - ${month} (date: ${date})`);
+    return summary;
+  } else {
+    // Legacy mode: no date tracking (for backward compatibility)
+    const summary = await MonthlySummary.findOneAndUpdate(
+      { userId, month },
+      {
+        $inc: {
+          totalSteps: steps,
+          totalDrivenKm: drivenKm,
+          totalSavedCO2: savedCO2,
+          daysTracked: 1
+        },
+        $set: { updatedAt: new Date() }
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`📊 Monthly summary updated for ${userId} - ${month} (no date tracking)`);
+    return summary;
+  }
 }
 
 /**

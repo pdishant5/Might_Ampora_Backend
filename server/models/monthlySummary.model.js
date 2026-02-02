@@ -26,6 +26,10 @@ const monthlySummarySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  processedDates: {
+    type: [String], // Array of YYYY-MM-DD dates that have been added to this summary
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now

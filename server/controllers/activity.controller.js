@@ -74,14 +74,14 @@ export const getPastWeekActivityController = asyncHandler(async (req, res) => {
  * Update monthly summary (called at midnight from Flutter app)
  */
 export const updateMonthlySummaryController = asyncHandler(async (req, res) => {
-    const { userId, month, steps, drivenKm, savedCO2 } = req.body;
+    const { userId, month, steps, drivenKm, savedCO2, date } = req.body;
 
     if (!userId || !month) {
         return res.status(400).json({ status: "error", message: "Missing userId or month!" });
     }
 
     const dailyData = { steps: steps || 0, drivenKm: drivenKm || 0, savedCO2: savedCO2 || 0 };
-    const summary = await updateMonthlySummary(userId, month, dailyData);
+    const summary = await updateMonthlySummary(userId, month, dailyData, date || null);
 
     res.status(200).json(new ApiResponse(200, {
         status: "success",
