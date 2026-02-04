@@ -10,7 +10,6 @@ import {
   getMonthlySummary
 } from "../services/activityMongoService.js";
 import { ApiResponse } from "../utils/apiResponse.js";
-import dayjs from 'dayjs';
 
 /**
     * Save daily activity for a user
