@@ -21,7 +21,7 @@ export async function saveUserActivity(userId, data, date = null) {
     { upsert: true, new: true }
   );
 
-  console.log(`✅ Activity saved for ${userId} on ${activityDate}`);
+  console.log(` Activity saved for ${userId} on ${activityDate}`);
   return activity;
 }
 
@@ -58,7 +58,7 @@ export async function getPastWeekActivity(userId) {
  * @param {string} userId - User ID
  * @param {string} month - Month in YYYY-MM format
  * @param {object} dailyData - Daily activity data to add to monthly totals
- * @param {string} date - Date in YYYY-MM-DD format (optional, for idempotency)
+ * @param {string} date - Date in YYYY-MM-DD format 
  */
 export async function updateMonthlySummary(userId, month, dailyData, date = null) {
   const { steps = 0, drivenKm = 0, savedCO2 = 0 } = dailyData;
@@ -67,7 +67,7 @@ export async function updateMonthlySummary(userId, month, dailyData, date = null
   if (date) {
     const existing = await MonthlySummary.findOne({ userId, month, processedDates: date });
     if (existing) {
-      console.log(`⏭️  Date ${date} already processed for ${userId} - ${month}, skipping`);
+      console.log(`  Date ${date} already processed for ${userId} - ${month}, skipping`);
       return existing;
     }
 
@@ -87,10 +87,9 @@ export async function updateMonthlySummary(userId, month, dailyData, date = null
       { upsert: true, new: true }
     );
 
-    console.log(`📊 Monthly summary updated for ${userId} - ${month} (date: ${date})`);
+    console.log(` Monthly summary updated for ${userId} - ${month} (date: ${date})`);
     return summary;
   } else {
-    // Legacy mode: no date tracking (for backward compatibility)
     const summary = await MonthlySummary.findOneAndUpdate(
       { userId, month },
       {
@@ -105,7 +104,7 @@ export async function updateMonthlySummary(userId, month, dailyData, date = null
       { upsert: true, new: true }
     );
 
-    console.log(`📊 Monthly summary updated for ${userId} - ${month} (no date tracking)`);
+    console.log(` Monthly summary updated for ${userId} - ${month} (no date tracking)`);
     return summary;
   }
 }
@@ -146,6 +145,6 @@ export async function resetMonthlySummary(userId, newMonth) {
     daysTracked: 0
   });
 
-  console.log(`🔄 New monthly summary created for ${userId} - ${newMonth}`);
+  console.log(` New monthly summary created for ${userId} - ${newMonth}`);
   return summary;
 }

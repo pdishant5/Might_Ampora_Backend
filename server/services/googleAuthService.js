@@ -24,7 +24,7 @@ export const verifyGoogleToken = async (idToken) => {
 export const handleGoogleAuth = async (idToken) => {
     const { googleId, email, name } = await verifyGoogleToken(idToken);
 
-    // Try to find user by email first (for merging)
+    // Try to find user by email first 
     let user = await User.findOne({ email });
     let newUser = 0;
 
@@ -49,7 +49,7 @@ export const handleGoogleAuth = async (idToken) => {
             user.providers.push("google");
         }
         await user.save();
-        console.log(`✅ Merged Google auth for user: ${email} (Providers: ${user.providers.join(", ")})`);
+        console.log(` Merged Google auth for user: ${email} (Providers: ${user.providers.join(", ")})`);
     }
 
     const payload = {

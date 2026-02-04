@@ -23,14 +23,14 @@ export const recognizeGadget = asyncHandler(async (req, res, next) => {
     }
 
     try {
-        // 1. Connect to your Hugging Face Space
+        //  Connect to your Hugging Face Space
         const app = await Client.connect("crash847/HomeApplianceClassifier");
 
-        // 2. Prepare the image for the Gradio API
+        // Prepare the image for the Gradio API
         const imageBlob = new Blob([req.file.buffer]);
         const imageFile = handle_file(imageBlob);
 
-        // 3. Predict using the specific named endpoint identified in your API info
+        //  Predict using the specific named endpoint identified in your API info
         const result = await app.predict("/predict_image", { 
             img: imageFile 
         });
@@ -39,15 +39,15 @@ export const recognizeGadget = asyncHandler(async (req, res, next) => {
             throw new ApiError(400, "Failed to recognize the appliance!");
         }
 
-        // 4. Extract the detected label (e.g., "Air Conditioner")
+        //  Extract the detected label 
         const detection = result.data[0];
         const applianceLabel = detection.label;
         const confidence = (detection.confidences[0].confidence * 100).toFixed(2) + "%";
 
-        // 5. Look up the static wattage from our map
+        //  Look up the static wattage from our map
         const staticWattage = APPLIANCE_WATTAGE_MAP[applianceLabel] || "0 W";
 
-        // 6. Return the combined result to the frontend
+        //  Return the combined result to the frontend
         return res.status(200).json(
             new ApiResponse(200, {
                 mainName: applianceLabel,
@@ -64,10 +64,6 @@ export const recognizeGadget = asyncHandler(async (req, res, next) => {
     }
 });
 
-/**
- * Kept for backward compatibility or manual overrides, 
- * now using the static map instead of Gemini.
- */
 export const getEstimatedWattage = asyncHandler(async (req, res) => {
     const { mainName } = req.body;
 

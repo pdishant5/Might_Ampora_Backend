@@ -70,7 +70,7 @@ export const getPastWeekActivityController = asyncHandler(async (req, res) => {
 });
 
 /**
- * Update monthly summary (called at midnight from Flutter app)
+ * Update monthly summary 
  */
 export const updateMonthlySummaryController = asyncHandler(async (req, res) => {
     const { userId, month, steps, drivenKm, savedCO2, date } = req.body;

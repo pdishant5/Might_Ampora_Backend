@@ -135,7 +135,7 @@ export const signInWithOTP = asyncHandler(async (req, res) => {
         });
     }
 
-    // First check if user exists by email (for merging with Google/Facebook)
+    // First check if user exists by email 
     let user = await User.findOne({ email });
     let newUser = 0;
 
@@ -169,7 +169,7 @@ export const signInWithOTP = asyncHandler(async (req, res) => {
             user.providers.push("mobile");
         }
         await user.save();
-        console.log(`✅ Merged mobile auth for user: ${email} (Providers: ${user.providers.join(", ")})`);
+        console.log(` Merged mobile auth for user: ${email} (Providers: ${user.providers.join(", ")})`);
     }
 
     const payload = {

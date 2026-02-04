@@ -24,7 +24,7 @@ export async function requestOtp(mobileNumber) {
     await redis.set(otpKey, hashed, { ex: OTP_TTL });
     await redis.multi().incr(resendKey).expire(resendKey, RESEND_WINDOW).exec();
 
-    // SMS the above generated OTP..
+    // SMS the above generated OTP
     await sendOTPSms(mobileNumber, otp);
     return otp;
 };

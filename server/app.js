@@ -8,25 +8,25 @@ import { errorHandler } from "./middlewares/error.middlewares.js";
 
 const app = express();
 
-// Global rate-limiting..
+// Global rate-limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes..
-    limit: 100, // Limit each IP to 100 requests per "window" (here, per 15 minutes)..
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 100, // Limit each IP to 100 requests per "window"
     message: "Too many requests, please try again after some time!"
 });
 
-// Security middlewares..
+// Security middlewares
 app.use(helmet());
 app.use(hpp());
 app.use("/api", limiter);
 
-// Body-Parser middlewares..
+// Body-Parser middlewares
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 app.set('trust proxy', 1); // trust first proxy
 
-// Global error handler..
+// Global error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(err.status || 500).json({
@@ -36,7 +36,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-// CORS configuration..
+// CORS configuration
 app.use(cors({
     origin: "*",
     credentials: true,
@@ -52,19 +52,19 @@ app.use(cors({
     ],
 }));
 
-// Import routes..
+// Import routes
 import authRouter from "./routes/auth.routes.js";
 import gadgetRouter from "./routes/gadget.routes.js";
 import solarRouter from "./routes/solar.routes.js";
 import activityRouter from "./routes/activity.routes.js";
 
-// API routes..
+// API routes
 app.use("/api/v1/users", authRouter);
 app.use("/api/v1/gadgets", gadgetRouter);
 app.use("/api/v1/solar", solarRouter);
 app.use("/api/v1/activity", activityRouter);
 
-// 404 Not Found handler..
+// 404 Not Found handler
 app.use((req, res) => {
     res.status(404).json({
         status: "error",
@@ -72,7 +72,7 @@ app.use((req, res) => {
     });
 });
 
-// Error handler..
+// Error handler
 app.use(errorHandler);
 
 export { app };

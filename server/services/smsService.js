@@ -11,7 +11,7 @@ export async function sendOTPSms(mobileNumber, otp) {
         // Send GET request
         const { data } = await axios.get(url);
 
-        console.log("✅ 2Factor SMS Response:", data);
+        console.log(" 2Factor SMS Response:", data);
 
         if (data.Status !== "Success") {
             throw new Error(`2Factor Error: ${data.Details}`);
@@ -19,7 +19,7 @@ export async function sendOTPSms(mobileNumber, otp) {
 
         return data;
     } catch (error) {
-        console.error("❌ Failed to send OTP via 2Factor:", error.response?.data || error.message);
+        console.error(" Failed to send OTP via 2Factor:", error.response?.data || error.message);
         throw new Error("SMS sending failed");
     }
 };

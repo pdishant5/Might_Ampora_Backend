@@ -2,7 +2,7 @@ import axios from "axios";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-// helper: format Date -> YYYY-MM-DD (UTC)
+// format Date -> YYYY-MM-DD 
 function isoDateUTC(date) {
     return date.toISOString().slice(0, 10);
 }
@@ -34,18 +34,18 @@ export const checkSolarStatus = asyncHandler(async (req, res) => {
     }
 
     // compute date window: last 30 full days (exclude today)
-    // endDate = yesterday (UTC)
+    // endDate = yesterday 
     const endDateObj = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const startDateObj = new Date(endDateObj.getTime() - 29 * 24 * 60 * 60 * 1000); // 30 days total
 
     const startDate = isoDateUTC(startDateObj);
     const endDate = isoDateUTC(endDateObj);
 
-    // 1) Fetch daily shortwave_radiation_sum (past 30 days)
-    // Note: daily shortwave_radiation_sum unit is often MJ/m^2 (see docs)
+    //  Fetch daily shortwave_radiation_sum (past 30 days)
+    // daily shortwave_radiation_sum unit is often MJ/m^2 (see docs)
     const dailyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&daily=shortwave_radiation_sum&start_date=${startDate}&end_date=${endDate}&timezone=UTC`;
 
-    // 2) Fetch recent hourly shortwave_radiation (preceding hour mean, W/m^2)
+    // Fetch recent hourly shortwave_radiation (preceding hour mean, W/m^2)
     // Use past_hours=3 to ensure we include at least the last hour values
     const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=shortwave_radiation&past_hours=3&timezone=auto`;
 
