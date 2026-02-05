@@ -1,5 +1,6 @@
 import Router from 'express';
 import {
+    deleteAccount,
     facebookSignIn,
     getUserProfile,
     googleSignIn,
@@ -21,5 +22,6 @@ router.post('/profile', getUserProfile);
 
 router.post('/refresh-token', refreshAccessToken);
 router.post('/logout', logoutUser);
+router.post('/delete-account', deleteAccount);
 
 export default router;

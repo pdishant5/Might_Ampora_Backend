@@ -300,3 +300,40 @@ export const logoutUser = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, { status: "success" }, "User logged out successfully!"));
 });
+
+export const deleteAccount = asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+        return res.status(400).json({
+            status: "error",
+            message: "Refresh token is required!"
+        });
+    }
+
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    if (!decoded) {
+        return res.status(401).json({
+            status: "error",
+            message: "Invalid refresh token!"
+        });
+    }
+
+    // Find and verify the user
+    const user = await User.findById(decoded.userId);
+    if (!user || (user.refreshToken !== refreshToken) || (user.refreshTokenExpiry && user.refreshTokenExpiry < new Date())) {
+        return res.status(401).json({
+            status: "error",
+            message: "Invalid or expired refresh token!"
+        });
+    }
+
+    // Delete the user account permanently
+    await User.findByIdAndDelete(decoded.userId);
+
+    return res.status(200).json(new ApiResponse(200, {
+        status: "success",
+        message: "Account deleted permanently"
+    }, "User account has been deleted successfully!"));
+});

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account & Data Deletion - Might Ampora</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: #1a1a1a;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(255,255,255,0.1)" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-size: 1.15rem;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+            font-weight: 300;
+        }
+        
+        .content {
+            padding: 50px 40px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section h2 {
+            color: #667eea;
+            font-size: 1.75rem;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #f0f0f0;
+            font-weight: 700;
+            position: relative;
+        }
+
+        .section h2::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .section p, .section li {
+            margin-bottom: 14px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #444;
+        }
+
+        .section p strong, .section li strong {
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+        
+        .section ul {
+            margin-left: 24px;
+            list-style-type: none;
+        }
+
+        .section ul li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 12px;
+        }
+
+        .section ul li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe5b4 100%);
+            border-left: 5px solid #ff9800;
+            padding: 24px;
+            margin: 30px 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.15);
+        }
+        
+        .warning strong {
+            color: #e65100;
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .warning p {
+            color: #856404;
+            margin: 0;
+            line-height: 1.6;
+        }
+        
+        .steps {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 16px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .steps ol {
+            margin-left: 24px;
+            counter-reset: step-counter;
+            list-style: none;
+        }
+        
+        .steps li {
+            counter-increment: step-counter;
+            margin-bottom: 20px;
+            padding-left: 45px;
+            position: relative;
+            font-size: 1.05rem;
+            color: #444;
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: -2px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .steps li strong {
+            color: #1a1a1a;
+        }
+        
+        .contact-box {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left: 5px solid #2196F3;
+            padding: 28px;
+            margin-top: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.15);
+        }
+        
+        .contact-box strong {
+            color: #1565c0;
+            font-size: 1.15rem;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .contact-box p {
+            color: #0d47a1;
+            margin: 0;
+        }
+        
+        .contact-box a {
+            color: #1976D2;
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+        
+        .contact-box a:hover {
+            border-bottom-color: #1976D2;
+        }
+        
+        code {
+            background: linear-gradient(135deg, #f5f5f5, #eeeeee);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 0.92em;
+            color: #d63384;
+            border: 1px solid #e0e0e0;
+        }
+
+        .icon {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .content {
+                padding: 30px 24px;
+            }
+
+            .section h2 {
+                font-size: 1.4rem;
+            }
+
+            .steps li {
+                padding-left: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                margin: 20px auto;
+                border-radius: 16px;
+            }
+
+            .header {
+                padding: 35px 24px;
+            }
+
+            .content {
+                padding: 24px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Account & Data Deletion</h1>
+            <p>Information about deleting your Might Ampora account</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>How to Delete Your Account</h2>
+                <p>You can delete your Might Ampora account directly from the mobile application in just a few simple steps:</p>
+                
+                <div class="steps">
+                    <ol>
+                        <li>Open the <strong>Might Ampora</strong> app on your device</li>
+                        <li>Tap on the <strong>Profile</strong> tab in the bottom navigation</li>
+                        <li>Scroll down to the <strong>"Preferences & Settings"</strong> section</li>
+                        <li>Tap on <strong>"Delete Account"</strong> (below the Log-out option)</li>
+                        <li>Read the confirmation dialog carefully</li>
+                        <li>Tap <strong>"Delete"</strong> to confirm permanent account deletion</li>
+                        <li>Your account will be deleted immediately and you'll be logged out</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="warning">
+                <strong>⚠️ Important Warning</strong>
+                <p>Deleting your account is permanent and cannot be undone. All your data will be immediately and permanently removed from our servers.</p>
+            </div>
+            
+            <div class="section">
+                <h2>What Data Gets Deleted</h2>
+                <p>When you delete your account, the following information will be permanently removed from our servers:</p>
+                <ul>
+                    <li>Your profile information (name, email, phone number, location)</li>
+                    <li>All authentication credentials (Google, Facebook, or phone-based login)</li>
+                    <li>Complete activity history (steps, driving data, CO2 savings)</li>
+                    <li>Monthly and daily activity summaries</li>
+                    <li>All gadget and solar-related data associated with your account</li>
+                    <li>Session tokens and refresh tokens</li>
+                    <li>Any preferences or saved settings</li>
+                </ul>
+                <p><strong>Note:</strong> This deletion is immediate and applies to both the mobile app and our backend servers.</p>
+            </div>
+            
+            <div class="section">
+                <h2>Data Retention & Deletion Timeline</h2>
+                <p>Once you delete your account:</p>
+                <ul>
+                    <li><strong>Immediate:</strong> Your account and all associated data are permanently deleted from our active database</li>
+                    <li><strong>Immediate:</strong> You are automatically logged out from all devices</li>
+                    <li><strong>Immediate:</strong> All authentication tokens are invalidated and cannot be used</li>
+                    <li><strong>No Recovery:</strong> There is no way to recover your account or data after deletion</li>
+                    <li><strong>No Backups:</strong> We do not retain backup copies of deleted accounts</li>
+                </ul>
+                <p><strong>Important:</strong> If you want to use Might Ampora again after deleting your account, you will need to create a completely new account.</p>
+            </div>
+            
+            <div class="section">
+                <h2>Alternative: Just Log Out</h2>
+                <p>If you're not sure about permanent deletion, you can simply log out of your account instead:</p>
+                <ul>
+                    <li>Your account and data will be preserved</li>
+                    <li>You can log back in anytime using the same credentials</li>
+                    <li>All your activity history and settings will be waiting for you</li>
+                </ul>
+                <p>To log out: Go to <strong>Profile → Log-out</strong> in the app.</p>
+            </div>
+            
+            <div class="contact-box">
+                <strong>📧 Need Help?</strong>
+                <p>If you encounter any issues deleting your account or have questions about data deletion, please contact our support team at: <a href="mailto:support@mightampora.com">support@mightampora.com</a></p>
+            </div>
+            
+            <div class="section">
+                <h2>Privacy & Security</h2>
+                <p>Your privacy and data security are our top priorities:</p>
+                <ul>
+                    <li>Account deletion is processed securely using encrypted authentication</li>
+                    <li>Only you can delete your own account</li>
+                    <li>The deletion process requires confirmation to prevent accidental deletion</li>
+                    <li>All data is permanently removed with no possibility of recovery</li>
+                    <li>We comply with data protection regulations including GDPR</li>
+                </ul>
+            </div>
+            
+            <div class="section">
+                <h2>Technical Details (For Developers)</h2>
+                <p>Account deletion is handled through our secure API endpoint:</p>
+                <p><code>POST /api/v1/users/delete-account</code></p>
+                <p>This endpoint requires authentication via refresh token and permanently deletes all user data from our database upon successful verification.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

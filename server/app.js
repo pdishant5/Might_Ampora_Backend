@@ -1,10 +1,15 @@
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import hpp from "hpp";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middlewares.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -25,6 +30,9 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 app.set('trust proxy', 1); // trust first proxy
+
+// Serve static files from the public directory
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Global error handler
 app.use((err, req, res, next) => {
