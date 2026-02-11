@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { handleGoogleAuth } from '../services/googleAuthService.js';
-import { handleFacebookAuth } from '../services/facebookAuthService.js';
 import { requestOtp, verifyOtp } from '../services/otpService.js';
 
 export const googleSignIn = asyncHandler(async (req, res) => {
@@ -36,40 +35,6 @@ export const googleSignIn = asyncHandler(async (req, res) => {
             providers: user.providers
         },
         accessToken,
-        refreshToken
-    }, "User signed in successfully!"));
-});
-
-export const facebookSignIn = asyncHandler(async (req, res) => {
-    const { idToken } = req.body;
-    
-    if (!idToken) {
-        return res.status(400).json({
-            status: "error",
-            message: "Firebase ID token is missing!"
-        });
-    }
-
-    const {
-        user,
-        jwtAccessToken,
-        refreshToken,
-        newUser
-    } = await handleFacebookAuth(idToken);
-
-    user.refreshToken = refreshToken;
-    user.refreshTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 365 days expiry
-    await user.save();
-    
-    return res.status(200+newUser).json(new ApiResponse(200+newUser, {
-        user: {
-            id: user._id,
-            email: user.email,
-            name: user.name,
-            phone: user.mobileNumber || '',
-            providers: user.providers
-        },
-        accessToken: jwtAccessToken,
         refreshToken
     }, "User signed in successfully!"));
 });

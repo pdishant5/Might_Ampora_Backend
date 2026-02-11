@@ -1,7 +1,6 @@
 import Router from 'express';
 import {
     deleteAccount,
-    facebookSignIn,
     getUserProfile,
     googleSignIn,
     logoutUser,
@@ -14,7 +13,6 @@ import {
 const router = Router();
 
 router.post('/google', googleSignIn);
-router.post('/facebook', facebookSignIn);
 router.post('/request-otp', requestOTP);
 router.post('/verify-otp', verifyOTP);
 router.post('/otp-signup', signInWithOTP);

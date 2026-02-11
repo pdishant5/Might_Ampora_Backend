@@ -4,7 +4,7 @@ Backend API for the Might Ampora mobile application.
 
 ## Features
 
-- 🔐 Multiple authentication methods (Google, Facebook, OTP)
+- 🔐 Multiple authentication methods (Google, OTP)
 - 📱 User account management
 - 🗑️ Account deletion (Google Play Store compliant)
 - 🔄 Refresh token management
@@ -60,7 +60,6 @@ MONGODB_URI=your_mongodb_connection_string
 
 ### Authentication
 - `POST /api/v1/users/google` - Google Sign-In
-- `POST /api/v1/users/facebook` - Facebook Sign-In
 - `POST /api/v1/users/request-otp` - Request OTP
 - `POST /api/v1/users/verify-otp` - Verify OTP
 - `POST /api/v1/users/otp-signup` - Sign up with OTP
