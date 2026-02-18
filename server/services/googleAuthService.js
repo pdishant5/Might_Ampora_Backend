@@ -9,6 +9,7 @@ export const verifyGoogleToken = async (idToken) => {
         audience: [
             process.env.GOOGLE_CLIENT_ID, // Web client ID
             process.env.GOOGLE_ANDROID_CLIENT_ID, // Android client ID
+            process.env.GOOGLE_IOS_CLIENT_ID, // iOS client ID
         ],
     });
 
