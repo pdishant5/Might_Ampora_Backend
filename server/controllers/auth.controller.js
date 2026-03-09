@@ -94,14 +94,31 @@ export const verifyOTP = asyncHandler(async (req, res) => {
     // Auto-create test account if it doesn't exist (for App Store review)
     const TEST_PHONE = process.env.TEST_MOBILE_NUMBER;
     if (!user && mobileNumber === TEST_PHONE) {
-        user = await User.create({
-            mobileNumber,
-            name: process.env.TEST_USER_NAME || "App Reviewer",
-            email: process.env.TEST_USER_EMAIL || "test@gmail.com",
-            location: "Test Location",
-            providers: ["mobile"],
-        });
-        console.log(`Test account auto-created for: ${mobileNumber}`);
+        try {
+            user = await User.findOneAndUpdate(
+                { mobileNumber },
+                {
+                    $setOnInsert: {
+                        mobileNumber,
+                        name: process.env.TEST_USER_NAME || "App Reviewer",
+                        email: process.env.TEST_USER_EMAIL || "test@gmail.com",
+                        location: "Test Location",
+                        providers: ["mobile"],
+                    }
+                },
+                { upsert: true, new: true }
+            );
+            console.log(`Test account ready for: ${mobileNumber}`);
+        } catch (err) {
+            console.error(`Failed to create test account:`, err.message);
+            // Try finding by email as fallback (in case duplicate key on email)
+            user = await User.findOne({ email: process.env.TEST_USER_EMAIL || "test@gmail.com" });
+            if (user && !user.mobileNumber) {
+                user.mobileNumber = mobileNumber;
+                if (!user.providers.includes("mobile")) user.providers.push("mobile");
+                await user.save();
+            }
+        }
     }
 
     if (user) {
