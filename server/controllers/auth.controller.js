@@ -89,8 +89,21 @@ export const verifyOTP = asyncHandler(async (req, res) => {
     await verifyOtp(mobileNumber, otp);
     
     // Check if user exists in database
-    const user = await User.findOne({ mobileNumber });
+    let user = await User.findOne({ mobileNumber });
     
+    // Auto-create test account if it doesn't exist (for App Store review)
+    const TEST_PHONE = process.env.TEST_MOBILE_NUMBER;
+    if (!user && mobileNumber === TEST_PHONE) {
+        user = await User.create({
+            mobileNumber,
+            name: process.env.TEST_USER_NAME || "App Reviewer",
+            email: process.env.TEST_USER_EMAIL || "test@gmail.com",
+            location: "Test Location",
+            providers: ["mobile"],
+        });
+        console.log(`Test account auto-created for: ${mobileNumber}`);
+    }
+
     if (user) {
         // Existing user - generate tokens
         const payload = {
