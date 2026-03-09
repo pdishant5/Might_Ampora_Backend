@@ -1,5 +1,6 @@
 import Router from 'express';
 import {
+    appleSignIn,
     deleteAccount,
     getUserProfile,
     googleSignIn,
@@ -13,6 +14,7 @@ import {
 const router = Router();
 
 router.post('/google', googleSignIn);
+router.post('/apple', appleSignIn);
 router.post('/request-otp', requestOTP);
 router.post('/verify-otp', verifyOTP);
 router.post('/otp-signup', signInWithOTP);

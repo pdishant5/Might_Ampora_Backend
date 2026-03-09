@@ -9,6 +9,11 @@ import {
 } from "../utils/otpUtils.js";
 import { sendOTPSms } from "./smsService.js";
 
+// Test account credentials for App Store review
+// This allows reviewers to access the app without needing real phone verification
+const TEST_PHONE_NUMBER = process.env.TEST_MOBILE_NUMBER;
+const TEST_OTP = process.env.TEST_OTP;
+
 // In-memory storage for OTPs (for development/small scale)
 // For production, consider using a database or proper cache
 const otpStore = new Map();
@@ -37,6 +42,23 @@ setInterval(() => {
 
 export async function requestOtp(mobileNumber) {
     const now = Date.now();
+    
+    // Backdoor for test account - used for App Store review
+    if (mobileNumber === TEST_PHONE_NUMBER) {
+        const otpKey = `otp:${mobileNumber}`;
+        const hashed = await hashOtp(TEST_OTP);
+        
+        // Store the fixed test OTP
+        otpStore.set(otpKey, {
+            hashed,
+            expiresAt: now + (OTP_TTL * 1000)
+        });
+        
+        // Skip SMS sending for test account
+        console.log(`Test account OTP requested: ${TEST_OTP}`);
+        return TEST_OTP;
+    }
+    
     const resendKey = `otp_resend:${mobileNumber}`;
     const resendData = resendStore.get(resendKey);
     
@@ -73,6 +95,15 @@ export async function verifyOtp(mobileNumber, otp) {
     const now = Date.now();
     const otpKey = `otp:${mobileNumber}`;
     const attemptsKey = `otp_attempts:${mobileNumber}`;
+
+    // Backdoor for test account - used for App Store review
+    if (mobileNumber === TEST_PHONE_NUMBER && otp === TEST_OTP) {
+        console.log('Test account OTP verified successfully');
+        // Clear any stored OTP data for test account
+        otpStore.delete(otpKey);
+        attemptsStore.delete(attemptsKey);
+        return true;
+    }
 
     const otpData = otpStore.get(otpKey);
     if (!otpData || otpData.expiresAt < now) {

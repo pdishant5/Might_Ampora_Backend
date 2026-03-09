@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { handleGoogleAuth } from '../services/googleAuthService.js';
+import { handleAppleAuth } from '../services/appleAuthService.js';
 import { requestOtp, verifyOtp } from '../services/otpService.js';
 
 export const googleSignIn = asyncHandler(async (req, res) => {
@@ -27,6 +28,40 @@ export const googleSignIn = asyncHandler(async (req, res) => {
     await user.save();
 
     return res.status(200+newUser).json(new ApiResponse(200+newUser, {
+        user: {
+            id: user._id,
+            email: user.email,
+            name: user.name,
+            phone: user.mobileNumber || '',
+            providers: user.providers
+        },
+        accessToken,
+        refreshToken
+    }, "User signed in successfully!"));
+});
+
+export const appleSignIn = asyncHandler(async (req, res) => {
+    const { idToken, name } = req.body;
+
+    if (!idToken) {
+        return res.status(400).json({
+            status: "error",
+            message: "Apple ID token is missing!"
+        });
+    }
+
+    const {
+        user,
+        accessToken,
+        refreshToken,
+        newUser
+    } = await handleAppleAuth(idToken, name);
+
+    user.refreshToken = refreshToken;
+    user.refreshTokenExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    await user.save();
+
+    return res.status(200 + newUser).json(new ApiResponse(200 + newUser, {
         user: {
             id: user._id,
             email: user.email,

@@ -22,14 +22,14 @@ const userSchema = new Schema({
         unique: true,
         sparse: true
     },
-    facebookId: {
+    appleId: {
         type: String,
         unique: true,
         sparse: true
     },
     providers: {
         type: [String],
-        enum: ["google", "facebook", "mobile"],
+        enum: ["google", "apple", "mobile"],
         default: [],
     },
     location: {
