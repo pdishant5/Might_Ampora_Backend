@@ -1,21 +1,11 @@
-import { Client, handle_file } from "@gradio/client";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-
-// Static mapping for typical wattage values
-const APPLIANCE_WATTAGE_MAP = {
-    "Air Conditioner": "2000 W",
-    "Ceiling Fan": "75 W",
-    "Microwave": "1200 W",
-    "Refrigerator": "400 W",
-    "Television": "100 W",
-    "Washing Machine": "700 W"
-};
+import { analyzeApplianceImage, getApplianceWattageEstimate } from "../services/geminiService.js";
 
 /**
- * Recognizes the gadget using Hugging Face ResNet model and
- * returns static wattage based on the detected category.
+ * Recognizes the gadget using Gemini Flash (vision) and returns
+ * appliance details including brand, wattage, and estimation flag.
  */
 export const recognizeGadget = asyncHandler(async (req, res, next) => {
     if (!req.file) {
@@ -23,61 +13,56 @@ export const recognizeGadget = asyncHandler(async (req, res, next) => {
     }
 
     try {
-        //  Connect to your Hugging Face Space
-        const app = await Client.connect("crash847/HomeApplianceClassifier");
+        const mimeType = req.file.mimetype || "image/jpeg";
+        const analysis = await analyzeApplianceImage(req.file.buffer, mimeType);
 
-        // Prepare the image for the Gradio API
-        const imageBlob = new Blob([req.file.buffer]);
-        const imageFile = handle_file(imageBlob);
-
-        //  Predict using the specific named endpoint identified in your API info
-        const result = await app.predict("/predict_image", { 
-            img: imageFile 
-        });
-
-        if (!result || !result.data) {
-            throw new ApiError(400, "Failed to recognize the appliance!");
+        if (!analysis.is_electric_appliance) {
+            return res.status(200).json(
+                new ApiResponse(200, {
+                    isElectricAppliance: false,
+                    mainName: null,
+                    mainBrand: null,
+                    estimatedWattage: null,
+                    isEstimated: null,
+                }, "The uploaded image does not appear to be a household electric appliance.")
+            );
         }
 
-        //  Extract the detected label 
-        const detection = result.data[0];
-        const applianceLabel = detection.label;
-        const confidence = (detection.confidences[0].confidence * 100).toFixed(2) + "%";
+        const wattageDisplay = analysis.power_rating_watts != null
+            ? `${analysis.power_rating_watts} W`
+            : "0 W";
 
-        //  Look up the static wattage from our map
-        const staticWattage = APPLIANCE_WATTAGE_MAP[applianceLabel] || "0 W";
-
-        //  Return the combined result to the frontend
         return res.status(200).json(
             new ApiResponse(200, {
-                mainName: applianceLabel,
-                mainBrand: "Detected",
-                starRating: "3 Star", // Default or extracted if supported
-                estimatedWattage: staticWattage,
-                confidence: confidence
+                isElectricAppliance: true,
+                mainName: analysis.appliance,
+                mainBrand: analysis.brand ?? "Unknown",
+                estimatedWattage: wattageDisplay,
+                isEstimated: analysis.is_estimated,
             }, "Appliance recognized successfully!")
         );
 
     } catch (err) {
-        console.error("Hugging Face API Error:", err);
+        console.error("Gemini API Error:", err);
         return next(new ApiError(500, "Error during appliance recognition: " + err.message));
     }
 });
 
-export const getEstimatedWattage = asyncHandler(async (req, res) => {
+export const getEstimatedWattage = asyncHandler(async (req, res, next) => {
     const { mainName } = req.body;
 
     if (!mainName) {
         throw new ApiError(400, "Appliance name is required for estimation!");
     }
 
-    const wattage = APPLIANCE_WATTAGE_MAP[mainName] || "0 W";
+    try {
+        const estimatedWattage = await getApplianceWattageEstimate(mainName);
 
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-            { estimatedWattage: wattage },
-            "Estimated wattage fetched successfully"
-        )
-    );
+        return res.status(200).json(
+            new ApiResponse(200, { estimatedWattage }, "Estimated wattage fetched successfully")
+        );
+    } catch (err) {
+        console.error("Gemini wattage estimation error:", err);
+        return next(new ApiError(500, "Error estimating wattage: " + err.message));
+    }
 });
